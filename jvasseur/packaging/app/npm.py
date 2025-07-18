@@ -18,6 +18,16 @@ def convert_version_range(range):
 def convert_version_constraint(constraint):
     return ' | '.join(map(lambda range: convert_version_range(range.strip()), re.split('\\|\\|?', constraint)))
 
+def create_node_command(name, path, constraint = None):
+    return Command(
+        Runner(
+            interface='https://apps.0install.net/javascript/node.xml',
+            version=convert_version_constraint(constraint) if constraint is not None else None,
+        ),
+        name=name,
+        path=path,
+    )
+
 class NpmApp(App):
     @property
     @abc.abstractmethod
@@ -34,13 +44,6 @@ class NpmApp(App):
             }
 
     def implementation(self, data):
-        if isinstance(data['bin'], dict):
-            commands = [self._create_command(data, 'run' if name == self.name else name, path) for name, path in data['bin'].items()]
-        elif isinstance(data['bin'], str):
-            commands = [self._create_command(data, 'run', data['bin'])]
-        else:
-            commands = []
-
         with Download(data['dist']['tarball']) as archive:
             size = get_size(archive.name)
             digest = get_digest(archive.name, 'package')
@@ -52,20 +55,19 @@ class NpmApp(App):
                 extract='package',
                 size=size,
             ),
-            *commands,
+            *self.commands(data),
             id=data['version'],
             version=data['version'],
             released=data['time'][0:10],
         )
 
-    def _create_command(self, version_data, name, path):
-        constraint = version_data.get('engines', {}).get('node')
+    def commands(self, data):
+        constraint = data.get('engines', {}).get('node')
 
-        return Command(
-            Runner(
-                interface='https://apps.0install.net/javascript/node.xml',
-                version=convert_version_constraint(constraint) if constraint is not None else None,
-            ),
-            name=name,
-            path=path,
-        )
+        if isinstance(data['bin'], dict):
+            return [create_node_command('run' if name == self.name else name, path, constraint) for name, path in data['bin'].items()]
+
+        if isinstance(data['bin'], str):
+            return [create_node_command('run', data['bin'], constraint)]
+
+        return []
