@@ -29,7 +29,7 @@ def _from_node(node):
                 version=node.getAttribute('version'),
             )
         case 'interface':
-            element = Interface()
+            element = Interface(uri=node.getAttribute('uri'))
         case 'manifest-digest':
             element = ManifestDigest(sha256new=node.getAttribute('sha256new'))
         case 'name':
@@ -139,6 +139,7 @@ def to_xml(interface: Interface, indent: str ='\t', newl: str ='\n') -> typing.I
     document = implementation.createDocument(xmlns, 'interface', None)
 
     document.documentElement.setAttribute('xmlns', xmlns)
+    document.documentElement.setAttribute('uri', interface.uri)
 
     for element in interface.children:
         document.documentElement.appendChild(_to_node(element, document))

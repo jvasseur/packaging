@@ -37,7 +37,8 @@ class Implementation:
         return [child for child in self.children if isinstance(child, Command)]
 
 class Interface:
-    def __init__(self, *children):
+    def __init__(self, *children, uri):
+        self.uri = uri
         self.children = list(children)
 
     def implementations(self):

@@ -37,7 +37,7 @@ class App(abc.ABC):
             with open(file_path, 'r') as file:
                 feed = from_xml(file)
         except FileNotFoundError:
-            feed = Interface()
+            feed = Interface(uri=self.uri)
 
         existing_implementations_id = set([implementation.id for implementation in feed.implementations()])
 
@@ -64,6 +64,11 @@ class App(abc.ABC):
             # Save inside the loop to save progress in case later archive download fail
             with open(file_path, 'w') as file:
                 file.write(to_xml(feed, indent='    ').read())
+
+    @property
+    @abc.abstractmethod
+    def uri(self):
+        pass
 
     @abc.abstractmethod
     def implementations(self):
