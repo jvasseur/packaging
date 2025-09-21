@@ -21,6 +21,13 @@ class FeedFor:
     def __init__(self, *, interface):
         self.interface = interface
 
+class File:
+    def __init__(self, *, href: str, size: int, dest: str, executable: bool = None):
+        self.href = href
+        self.size = size
+        self.dest = dest
+        self.executable = executable
+
 class Implementation:
     def __init__(self, *children, arch = None, id, released, stability: str = None, version):
         self.children = list(children)
