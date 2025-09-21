@@ -1,6 +1,6 @@
 import io, typing, xml.dom, xml.dom.minidom
 
-from .feed import Archive, Command, FeedFor, Group, Implementation, Interface, ManifestDigest, Name, Runner, Summary
+from .feed import Archive, Command, FeedFor, File, Group, Implementation, Interface, ManifestDigest, Name, Runner, Summary
 
 def _from_node(node):
     match node.tagName:
@@ -15,6 +15,13 @@ def _from_node(node):
             element = Command(
                 name=node.getAttribute('name'),
                 path=node.getAttribute('path'),
+            )
+        case 'file':
+            element = File(
+                href=node.getAttribute('href'),
+                size=node.getAttribute('size'),
+                dest=node.getAttribute('dest'),
+                executable=(node.getAttribute('executable') == 'true') if node.hasAttribute('executable') else None,
             )
         case 'group':
             element = Group(
@@ -82,6 +89,15 @@ def _to_node(element, document):
         case FeedFor(interface=interface):
             node = document.createElement('feed-for')
             node.setAttribute('interface', interface)
+
+            return node
+        case File(href=href, size=size, dest=dest, executable=executable):
+            node = document.createElement('file')
+            node.setAttribute('href', href)
+            node.setAttribute('size', str(size))
+            node.setAttribute('dest', dest)
+            if executable is not None:
+                node.setAttribute('executable', 'true' if executable else 'false')
 
             return node
         case Group(arch=arch, children=children):
