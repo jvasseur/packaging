@@ -1,8 +1,8 @@
 import abc, hashlib, json, posixpath, urllib.parse, urllib.request
 
-from ..feed import Command, File, Implementation, ManifestDigest
+from ..feed import Archive, Command, File, Implementation, ManifestDigest
 from ..manifest import get_manifest_digest, ManifestFile
-from .utils import Download
+from .utils import Download, get_digest, get_size
 from . import App
 
 class GitHubApp(App):
@@ -21,16 +21,46 @@ class GitHubApp(App):
     def implementations(self):
         releases = json.loads(urllib.request.urlopen(f'https://api.github.com/repos/{self.repo}/releases').read())
 
-        for release in releases:
+        for release in reversed(releases):
             version = self.version(release['tag_name'])
 
-            for arch, asset in self.assets(release['assets']):
-                yield f'{version}-{arch}', {
-                    'arch': arch,
-                    'asset': asset,
-                    'release': release,
-                    'version': version,
-                }
+            if version is not None:
+                for arch, asset in self.assets(release['assets']):
+                    yield f'{version}-{arch}', {
+                        'arch': arch,
+                        'asset': asset,
+                        'release': release,
+                        'version': version,
+                    }
+
+class ArchiveGitHubApp(GitHubApp):
+    @abc.abstractmethod
+    def commands(self, data):
+        pass
+
+    def extract(self, data):
+        return None
+
+    def implementation(self, data):
+        extract = self.extract(data)
+
+        with Download(data['asset']['browser_download_url']) as archive:
+            digest = get_digest(archive.name, extract)
+
+        return Implementation(
+            ManifestDigest(sha256new=digest),
+            Archive(
+                href=data['asset']['browser_download_url'],
+                size=data['asset']['size'],
+                extract=extract,
+            ),
+            *self.commands(data),
+            arch=data['arch'],
+            id=f'{data['version']}-{data['arch']}',
+            version=data['version'],
+            released=data['release']['published_at'][0:10],
+            stability='testing' if data['release']['prerelease'] else 'stable',
+        )
 
 class FileGitHubApp(GitHubApp):
     def file_name(self, data):
