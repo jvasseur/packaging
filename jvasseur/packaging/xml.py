@@ -1,20 +1,31 @@
 import io, typing, xml.dom, xml.dom.minidom
 
-from .feed import Archive, Command, FeedFor, File, Group, Implementation, Interface, ManifestDigest, Name, Runner, Summary
+from .feed import Archive, Arg, Command, Environment, FeedFor, ForEach, File, Group, Implementation, Interface, ManifestDigest, Name, Runner, Summary
 
 def _from_node(node):
     match node.tagName:
         case 'archive':
             element = Archive(
                 href=node.getAttribute('href'),
-                size=node.getAttribute('size'),
+                size=int(node.getAttribute('size')),
                 extract=node.getAttribute('extract') if node.hasAttribute('extract') else None,
                 type=node.getAttribute('type') if node.hasAttribute('type') else None,
             )
+        case 'arg':
+            element = Arg(node.firstChild.data)
         case 'command':
             element = Command(
                 name=node.getAttribute('name'),
                 path=node.getAttribute('path'),
+            )
+        case 'environment':
+            element = Environment(
+                name=node.getAttribute('name'),
+                insert=node.getAttribute('insert') if node.hasAttribute('insert') else None,
+                value=node.getAttribute('value') if node.hasAttribute('value') else None,
+                mode=node.getAttribute('mode') if node.hasAttribute('mode') else None,
+                separator=node.getAttribute('separator') if node.hasAttribute('separator') else None,
+                default=node.getAttribute('default') if node.hasAttribute('default') else None,
             )
         case 'file':
             element = File(
@@ -22,6 +33,11 @@ def _from_node(node):
                 size=node.getAttribute('size'),
                 dest=node.getAttribute('dest'),
                 executable=(node.getAttribute('executable') == 'true') if node.hasAttribute('executable') else None,
+            )
+        case 'for-each':
+            element = ForEach(
+                item_from=node.getAttribute('item-from'),
+                separator=node.getAttribute('separator') if node.hasAttribute('separator') else None,
             )
         case 'group':
             element = Group(
@@ -77,6 +93,11 @@ def _to_node(element, document):
                 node.setAttribute('type', type)
 
             return node
+        case Arg(content=content):
+            node = document.createElement('arg')
+            node.appendChild(document.createTextNode(content))
+
+            return node
         case Command(name=name, path=path, children=children):
             node = document.createElement('command')
             node.setAttribute('name', name)
@@ -84,6 +105,21 @@ def _to_node(element, document):
 
             for child in children:
                 node.appendChild(_to_node(child, document))
+
+            return node
+        case Environment(name=name, insert=insert, value=value, mode=mode, separator=separator, default=default):
+            node = document.createElement('environment')
+            node.setAttribute('name', name)
+            if insert is not None:
+                node.setAttribute('insert', insert)
+            if value is not None:
+                node.setAttribute('value', value)
+            if mode is not None:
+                node.setAttribute('mode', mode)
+            if separator is not None:
+                node.setAttribute('separator', separator)
+            if default is not None:
+                node.setAttribute('default', default)
 
             return node
         case FeedFor(interface=interface):
@@ -98,6 +134,16 @@ def _to_node(element, document):
             node.setAttribute('dest', dest)
             if executable is not None:
                 node.setAttribute('executable', 'true' if executable else 'false')
+
+            return node
+        case ForEach(item_from=item_from, separator=separator, children=children):
+            node = document.createElement('for-each')
+            node.setAttribute('item-from', item_from)
+            if separator is not None:
+                node.setAttribute('separator', separator)
+
+            for child in children:
+                node.appendChild(_to_node(child, document))
 
             return node
         case Group(arch=arch, children=children):

@@ -5,6 +5,16 @@ class Archive:
         self.extract = extract
         self.type = type
 
+    def __eq__(self, other):
+        return self.href == other.href and self.size == other.size and self.extract == other.extract and self.type == other.type
+
+class Arg:
+    def __init__(self, content):
+        self.content = content
+
+    def __eq__(self, other):
+        return self.content == other.content
+
 class Command:
     def __init__(self, *children, name, path):
         self.children = list(children)
@@ -17,9 +27,33 @@ class Command:
     def append(self, element):
         self.children.append(element)
 
+class Environment:
+    def __init__(self, *, name: str, insert: str = None, value: str = None, mode: str = None, separator: str = None, default: str = None):
+        self.name = name
+        self.insert = insert
+        self.value = value
+        self.mode = mode
+        self.separator = separator
+        self.default = default
+
+    def __eq__(self, other):
+        return self.name == other.name and self.insert == other.insert and self.value == other.value and self.mode == other.mode and self.separator == other.separator and self.default == other.default
+
 class FeedFor:
     def __init__(self, *, interface):
         self.interface = interface
+
+class ForEach:
+    def __init__(self, *children, item_from: str, separator: str = None):
+        self.children = list(children)
+        self.item_from = item_from
+        self.separator = separator
+
+    def __eq__(self, other):
+        return self.item_from == other.item_from and self.separator == other.separator and self.children == other.children
+
+    def append(self, element):
+        self.children.append(element)
 
 class File:
     def __init__(self, *, href: str, size: int, dest: str, executable: bool = None):
@@ -37,6 +71,9 @@ class Implementation:
         self.stability = stability
         self.version = version
 
+    def __eq__(self, other):
+        return self.arch == other.arch and self.id == other.id and self.released == other.released and self.stability == other.stability and self.version == other.version and self.children == other.children
+
     def append(self, element):
         self.children.append(element)
 
@@ -48,15 +85,18 @@ class Interface:
         self.uri = uri
         self.children = list(children)
 
+    def __eq__(self, other):
+        return self.uri == other.uri and self.children == other.children
+
+    def append(self, element):
+        self.children.append(element)
+
     def implementations(self):
         for child in self.children:
             if isinstance(child, Implementation):
                 yield child
             if isinstance(child, Group):
                 yield from child.implementations()
-
-    def append(self, element):
-        self.children.append(element)
 
 class ManifestDigest:
     def __init__(self, *, sha256new):
