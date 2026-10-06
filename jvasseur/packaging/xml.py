@@ -1,6 +1,6 @@
 import io, typing, xml.dom, xml.dom.minidom
 
-from .feed import Archive, Arg, Command, Environment, FeedFor, ForEach, File, Group, Implementation, Interface, ManifestDigest, Name, Runner, Summary
+from .feed import Archive, Arg, Category, Command, Description, Environment, FeedFor, File, ForEach, Group, Homepage, Icon, Implementation, Interface, ManifestDigest, Name, Publisher, Runner, SplashScreen, Summary
 
 def _from_node(node):
     match node.tagName:
@@ -13,11 +13,15 @@ def _from_node(node):
             )
         case 'arg':
             element = Arg(node.firstChild.data)
+        case 'category':
+            element = Category(node.firstChild.data)
         case 'command':
             element = Command(
                 name=node.getAttribute('name'),
                 path=node.getAttribute('path'),
             )
+        case 'description':
+            element = Description(node.firstChild.data)
         case 'environment':
             element = Environment(
                 name=node.getAttribute('name'),
@@ -43,6 +47,13 @@ def _from_node(node):
             element = Group(
                 arch=node.getAttribute('arch') if node.hasAttribute('arch') else None,
             )
+        case 'homepage':
+            element = Homepage(node.firstChild.data)
+        case 'icon':
+            element = Icon(
+                href=node.getAttribute('href'),
+                type=node.getAttribute('type'),
+            )
         case 'implementation':
             element = Implementation(
                 arch=node.getAttribute('arch') if node.hasAttribute('arch') else None,
@@ -57,10 +68,17 @@ def _from_node(node):
             element = ManifestDigest(sha256new=node.getAttribute('sha256new'))
         case 'name':
             element = Name(node.firstChild.data)
+        case 'publisher':
+            element = Publisher(node.firstChild.data)
         case 'runner':
             element = Runner(
                 interface=node.getAttribute('interface'),
                 version=node.getAttribute('version') if node.hasAttribute('version') else None,
+            )
+        case 'splash-screen':
+            element = SplashScreen(
+                href=node.getAttribute('href'),
+                type=node.getAttribute('type'),
             )
         case 'summary':
             element = Summary(node.firstChild.data)
@@ -98,6 +116,11 @@ def _to_node(element, document):
             node.appendChild(document.createTextNode(content))
 
             return node
+        case Category(content=content):
+            node = document.createElement('category')
+            node.appendChild(document.createTextNode(content))
+
+            return node
         case Command(name=name, path=path, children=children):
             node = document.createElement('command')
             node.setAttribute('name', name)
@@ -105,6 +128,11 @@ def _to_node(element, document):
 
             for child in children:
                 node.appendChild(_to_node(child, document))
+
+            return node
+        case Description(content=content):
+            node = document.createElement('description')
+            node.appendChild(document.createTextNode(content))
 
             return node
         case Environment(name=name, insert=insert, value=value, mode=mode, separator=separator, default=default):
@@ -155,6 +183,17 @@ def _to_node(element, document):
                 node.appendChild(_to_node(child, document))
 
             return node
+        case Homepage(content=content):
+            node = document.createElement('homepage')
+            node.appendChild(document.createTextNode(content))
+
+            return node
+        case Icon(href=href, type=type):
+            node = document.createElement('icon')
+            node.setAttribute('href', href)
+            node.setAttribute('type', type)
+
+            return node
         case Implementation(arch=arch, id=id, released=released, stability=stability, version=version, children=children):
             node = document.createElement('implementation')
             if arch is not None:
@@ -179,11 +218,22 @@ def _to_node(element, document):
             node.appendChild(document.createTextNode(content))
 
             return node
+        case Publisher(content=content):
+            node = document.createElement('publisher')
+            node.appendChild(document.createTextNode(content))
+
+            return node
         case Runner(interface=interface, version=version):
             node = document.createElement('runner')
             node.setAttribute('interface', interface)
             if version is not None:
                 node.setAttribute('version', version)
+
+            return node
+        case SplashScreen(href=href, type=type):
+            node = document.createElement('splash-screen')
+            node.setAttribute('href', href)
+            node.setAttribute('type', type)
 
             return node
         case Summary(content=content):
@@ -192,7 +242,7 @@ def _to_node(element, document):
 
             return node
         case _:
-            raise Exception('Unknow element type')
+            raise Exception('Unknown element type')
 
 def to_xml(interface: Interface, indent: str ='\t', newl: str ='\n') -> typing.IO:
     xmlns = 'http://zero-install.sourceforge.net/2004/injector/interface'

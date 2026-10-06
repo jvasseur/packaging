@@ -1,6 +1,6 @@
 import io, textwrap
 
-from jvasseur.packaging.feed import Archive, Arg, Command, Environment, ForEach, Interface, Implementation, Runner
+from jvasseur.packaging.feed import Archive, Arg, Category, Command, Description, Environment, ForEach, Homepage, Icon, Interface, Implementation, Name, Publisher, Runner, SplashScreen, Summary
 from jvasseur.packaging.xml import from_xml, to_xml
 
 def test_empty_interface():
@@ -24,6 +24,36 @@ def test_empty_implementation():
         <?xml version="1.0"?>
         <interface xmlns="http://zero-install.sourceforge.net/2004/injector/interface" uri="http://example.com/">
             <implementation id="1" released="2025-05-19" version="1"/>
+        </interface>
+    """).lstrip()
+
+    assert to_xml(interface, indent='    ').read() == xml
+    assert from_xml(io.StringIO(xml)) == interface
+
+def test_implementation_with_details():
+    interface = Interface(
+        Name('test'),
+        Summary('testing'),
+        Description('for testing'),
+        Publisher('the publisher'),
+        Homepage('https://example.com'),
+        Category('Utility'),
+        Icon(type='image/png', href='https://example.com/icon.png'),
+        SplashScreen(type='image/png', href='https://example.com/splash.png'),
+        uri='http://example.com/',
+    )
+
+    xml = textwrap.dedent("""
+        <?xml version="1.0"?>
+        <interface xmlns="http://zero-install.sourceforge.net/2004/injector/interface" uri="http://example.com/">
+            <name>test</name>
+            <summary>testing</summary>
+            <description>for testing</description>
+            <publisher>the publisher</publisher>
+            <homepage>https://example.com</homepage>
+            <category>Utility</category>
+            <icon href="https://example.com/icon.png" type="image/png"/>
+            <splash-screen href="https://example.com/splash.png" type="image/png"/>
         </interface>
     """).lstrip()
 
